@@ -73,7 +73,8 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -83,7 +84,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  	  uint8_t k =0;
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -99,8 +100,11 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  HAL_UART_Transmit(&huart2, "la",2,10);
+	  if (k<=1){
+	  HAL_UART_Transmit(&huart2, "la\r\n",6,10);
 	  HAL_Delay(100);
+	  }
+	  k++;
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
