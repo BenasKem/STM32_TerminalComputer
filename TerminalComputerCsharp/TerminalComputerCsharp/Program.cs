@@ -8,12 +8,15 @@ namespace TerminalComputerCsharp
     class Program
     {
         static bool exit = false;
+        static bool connected = false;
         static SerialPort serial_port = new SerialPort();
         static int baudrate = 38400;
 
+        static int command_length = 0;
+
         static Dictionary<string,string> commands = new Dictionary<string, string>()
         {
-            { "ports", "Shows all available ports" },
+            {"ports", "Shows all available ports" },
             {"clear","Clears console and all its text" },
             {"connect", "Connects to a specified port. connect *PORT_NAME* " },
             {"disconnect", "Disconnects with the current port" }
@@ -21,11 +24,10 @@ namespace TerminalComputerCsharp
         static void Main(string[] args)
         {
             StartConsole();
-
             do
             {
                 Console.Write(">");
-                var command = Console.ReadLine();
+                string command = Console.ReadLine();
                 ParseCommand(command);
             } while (!exit);
             
@@ -51,15 +53,15 @@ namespace TerminalComputerCsharp
 
             if (command.Contains("commands"))
             {
-                AvailableCommands(false, command);
+                CommandControls.AvailableCommands(false, command, commands);
                 return;
             }
             else if (command.Contains("!") && !command.Contains("commands"))
             {
-                AvailableCommands(true, command);
+                CommandControls.AvailableCommands(true, command, commands);
                 return;
             }
-            else if (command.Contains("connect") && !command.Contains("disconnect"))
+            else if (command.Contains("connect") && !command.Contains("disconnect") && command.Contains("com"))
             {
                 string[] splits = command.Split(' ');
                 if (splits[1].Contains("com") && splits[1].Any(c => char.IsDigit(c)))
@@ -67,7 +69,8 @@ namespace TerminalComputerCsharp
                     if (!serial_port.IsOpen)
                     {
                         serial_port.PortName = splits[1];
-                        EstablishConnection(splits[1]);
+                        CommandControls.EstablishConnection(splits[1], serial_port, baudrate);
+                        connected = true;
                         return;
                     }
                     else { Console.WriteLine($"Already connected to {serial_port.PortName.ToUpper()} port"); return; };
@@ -75,92 +78,38 @@ namespace TerminalComputerCsharp
                 }  
             }
 
-            switch (command)
+            if (!connected)
             {
-                case "ports":
-                    ScanPorts();
-                    break;
-                case "clear":
-                    Console.Clear();
-                    break;
-                case "disconnect":
-                    CloseConnection();
-                    break;
-                default:
-                    Console.WriteLine("Command not found. !commands for available commands");
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Shows available ports
-        /// </summary>
-        static void ScanPorts()
-        {
-            string[] ports = SerialPort.GetPortNames();
-            foreach (var item in ports)
-            {
-                Console.WriteLine(item);
-            }
-        }
-
-        /// <summary>
-        /// Displays all the available commands
-        /// </summary>
-        static void AvailableCommands(bool display_information, string command_to_show)
-        {
-
-            if (!display_information)
-            {
-                Console.WriteLine("Type \'!*command_name*\' for more information about each command");
-                foreach (var command in commands)
+                switch (command)
                 {
-                    Console.WriteLine(command.Key);
+                    case "ports":
+                        CommandControls.ScanPorts();
+                        break;
+                    case "clear":
+                        Console.Clear();
+                        break;
+                    case "disconnect":
+                        CommandControls.CloseConnection(serial_port);
+                        break;
+                    default:
+                        Console.WriteLine("Command not found. !commands for available commands");
+                        break;
+                }
+            } else
+            {
+                string[] command_words = command.Split(' ');
+                string first_command_word = command_words[0];
+                switch (first_command_word)
+                {
+                    case "sum":
+                        CommandControls.SumOfNumbers(command); // SendCommand()
+                        break;
+                    default:
+                        Console.WriteLine("Command not found. !commands for available commands");
+                        break;
                 }
             }
-            else
-            {
-                command_to_show = command_to_show.Trim('!');
-                Console.WriteLine(commands[command_to_show]);
-            }
-        }
-        /// <summary>
-        /// Tries to establish a connection with the given port
-        /// </summary>
-        /// <param name="port"></param>
-        static void EstablishConnection(string port)
-        {
-            serial_port.PortName = port;
-            try
-            {
-                serial_port.Open();
-                serial_port.BaudRate = baudrate;
-                serial_port.Parity = Parity.None;
-                serial_port.StopBits = StopBits.One;
-                serial_port.NewLine = "\n";
-                byte[] buffer = new byte[2];
-               
-                Console.WriteLine(serial_port.ReadLine());
-                Console.WriteLine($"Connection established with {port.ToUpper()} port");
-            }
-            catch(SystemException ex)
-            {
-                Console.WriteLine($"Could not establish a connection with {port.ToUpper()} port");
-            }
         }
 
-        /// <summary>
-        /// Close the current connection, if there is any
-        /// </summary>
-        static void CloseConnection()
-        {
-            if (serial_port.IsOpen)
-            {
-                Console.WriteLine($"Closed connection with {serial_port.PortName.ToUpper()} port");
-                serial_port.Close();
-            }
-            else Console.WriteLine("No connection established");
-          
-        }
     }
 }
